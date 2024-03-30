@@ -58,8 +58,7 @@
       * @param imIn - the input image used to construct the tree
       */
 TripleTree::TripleTree(PNG& imIn) {
-    // add your implementation below
-	
+    root = BuildNode(imIn, pair<unsigned int, unsigned int>(0, 0), imIn.width(), imIn.height());
 }
 
 /**
@@ -155,9 +154,99 @@ void TripleTree::Copy(const TripleTree& other) {
  * @param h - height of node to be built's rectangle.
  */
 Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsigned int w, unsigned int h) {
-    // replace the line below with your implementation
-    return nullptr;
+    if (w == 0 || h == 0) // base case for when we divide 1 pixel by 3
+        return nullptr;
+    
+    Node* node = new Node(ul, w, h);
+    node->avg = AverageColour(im, ul, w, h);
+
+    if (h > w) {
+        int heightcase = h % 3;
+        int heightA, heightB, heightC;
+        switch (heightcase) {
+            case 0: // case 1: divisible by 3
+                heightA = h / 3;
+                heightB = h / 3;
+                heightC = h / 3;
+                break;
+            case 1: // case 2: 3p + 1 so middle gets extra
+                heightA = h / 3;
+                heightB = (h / 3);
+                if (heightB != 0) // for terminating correctly when we only have 1 pixel
+                    heightB++;
+                heightC = h / 3;
+                break;
+            case 2: // case 3: 3p + 2 so side two gets extra
+                heightA = (h / 3) + 1;
+                heightB = h / 3;
+                heightC = (h / 3) + 1;
+                break;
+        }
+        
+        node->A = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second), w, heightA);
+        node->B = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second + heightA), w, heightB);
+        node->C = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second + heightB), w, heightC);
+    } else {
+        int widthcase = w % 3;
+        int widthA, widthB, widthC;
+        switch (widthcase) {
+            case 0: // case 1: divisible by 3
+                widthA = w / 3;
+                widthB = w / 3;
+                widthC = w / 3;
+                break;
+            case 1: // case 2: 3p + 1 so middle gets extra
+                widthA = w / 3;
+                widthB = (w / 3);
+                if (widthB != 0) // same as above
+                    widthB++;
+                widthC = w / 3;
+                break;
+            case 2: // case 3: 3p + 2 so side two gets extra
+                widthA = (w / 3) + 1;
+                widthB = w / 3;
+                widthC = (w / 3) + 1;
+                break;
+        }
+        
+        node->A = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second), widthA, h);
+        node->B = BuildNode(im, pair<unsigned int, unsigned int>(ul.first + widthA, ul.second), widthB, h);
+        node->C = BuildNode(im, pair<unsigned int, unsigned int>(ul.first + widthB, ul.second), widthC, h);
+    }
+
+    return node;
 }
 
 /* ===== IF YOU HAVE DEFINED PRIVATE MEMBER FUNCTIONS IN tripletree_private.h, IMPLEMENT THEM HERE ====== */
 
+/**
+ * Given an area of an image, find the average colour and return an RGBAPixel
+ * @param im - reference image used for construction
+ * @param ul - upper left point of node to be built's rectangle.
+ * @param w - width of node to be built's rectangle.
+ * @param h - height of node to be built's rectangle.
+ */
+RGBAPixel TripleTree::AverageColour(PNG& im, pair<unsigned int, unsigned int> ul, unsigned int w, unsigned int h) {
+    unsigned int accumulatedRed = 0;
+    unsigned int accumulatedGreen = 0;
+    unsigned int accumulatedBlue = 0;
+    double accumulatedAlpha = 0;
+    int numNodes = 0;
+    for (unsigned int y = ul.second; y < h; y++) {
+        for (unsigned int x = ul.first; x < w; x++) {
+            RGBAPixel* temp = im.getPixel(x, y);
+            accumulatedRed += temp->r;
+            accumulatedGreen += temp->g;
+            accumulatedBlue += temp->b;
+            accumulatedAlpha += temp->a;
+            numNodes++;
+        }
+    }
+    unsigned int avgRed = accumulatedRed / numNodes;
+    unsigned int avgGreen = accumulatedGreen / numNodes;
+    unsigned int avgBlue = accumulatedBlue / numNodes;
+    double avgAlpha = accumulatedAlpha / numNodes;
+
+    RGBAPixel avgP(avgRed, avgGreen, avgBlue, avgAlpha);
+    return avgP;
+}
