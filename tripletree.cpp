@@ -6,7 +6,6 @@
  */
 
 #include "tripletree.h"
-
  /**
       * Constructor that builds a TripleTree out of the given PNG.
       *
@@ -232,8 +231,8 @@ RGBAPixel TripleTree::AverageColour(PNG& im, pair<unsigned int, unsigned int> ul
     unsigned int accumulatedBlue = 0;
     double accumulatedAlpha = 0;
     int numNodes = 0;
-    for (unsigned int y = ul.second; y < h; y++) {
-        for (unsigned int x = ul.first; x < w; x++) {
+    for (unsigned int y = ul.second; y < ul.second + h; y++) {
+        for (unsigned int x = ul.first; x < ul.first + w; x++) {
             RGBAPixel* temp = im.getPixel(x, y);
             accumulatedRed += temp->r;
             accumulatedGreen += temp->g;
