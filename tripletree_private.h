@@ -18,4 +18,24 @@
  * @param w - width of node to be built's rectangle.
  * @param h - height of node to be built's rectangle.
  */
-RGBAPixel AverageColour(PNG& im, pair<unsigned int, unsigned int> ul, unsigned int w, unsigned int h);
+RGBAPixel AverageColour(Node* node);
+
+Node* CopyTree(Node* node);
+
+int NumLeavesCounter(const Node* node) const;
+
+void FlipHorizontal(Node* node);
+
+void RenderHelper(Node* node, PNG& image) const;
+
+void PruneHelper(Node*& node, double tol);
+
+bool ShouldPrune(Node* node, RGBAPixel avg, double tol) const;
+
+void FlipHorizontalHelper(Node* node);
+
+int NumLeavesHelper(Node* node) const;
+
+void ClearHelper(Node*& node);
+
+Node* CopyHelper(Node* otherNode);
