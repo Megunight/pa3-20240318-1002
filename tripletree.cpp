@@ -102,8 +102,12 @@ void TripleTree::Prune(double tol) {
  * You may want a recursive helper function for this.
  */
 void TripleTree::FlipHorizontal() {
+<<<<<<< HEAD
     // add your implementation below
 	FlipHorizontalHelper(root);
+=======
+    FlipHorizontal(root);
+>>>>>>> 022badeb6615d5d55e485b2e6b8ce84acab2ea70
 }
 
 /**
@@ -124,8 +128,12 @@ void TripleTree::RotateCCW() {
  * You may want a recursive helper function for this.
  */
 int TripleTree::NumLeaves() const {
+<<<<<<< HEAD
     // replace the line below with your implementation
     return NumLeavesHelper(root);
+=======
+    return NumLeavesCounter(root);
+>>>>>>> 022badeb6615d5d55e485b2e6b8ce84acab2ea70
 }
 
 /**
@@ -145,8 +153,12 @@ void TripleTree::Clear() {
  * @param other - The TripleTree to be copied.
  */
 void TripleTree::Copy(const TripleTree& other) {
+<<<<<<< HEAD
     // add your implementation below
 	root = CopyHelper(other.root);
+=======
+    root = CopyTree(other.root);
+>>>>>>> 022badeb6615d5d55e485b2e6b8ce84acab2ea70
 }
 
 /**
@@ -160,9 +172,13 @@ void TripleTree::Copy(const TripleTree& other) {
 Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsigned int w, unsigned int h) {
     if (w == 0 || h == 0) // base case for when we divide 1 pixel by 3
         return nullptr;
-    
+
     Node* node = new Node(ul, w, h);
-    node->avg = AverageColour(im, ul, w, h);
+    if (w == 1 && h == 1) // 'base case' for recursion when calculating avg colour
+        node->avg = *(im.getPixel(ul.first, ul.second));
+    
+    unsigned int avgR, avgG, avgB;
+    double avgA;
 
     if (h > w) {
         int heightcase = h % 3;
@@ -190,6 +206,28 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
         node->A = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second), w, heightA);
         node->B = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second + heightA), w, heightB);
         node->C = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second + heightB), w, heightC);
+
+        if (w > 1 && h > 2) {
+            avgR = ((node->A->avg.r * (w * heightA)) + (node->B->avg.r * (w * heightB)) + (node->C->avg.r * (w * heightC)))
+                / (w * (heightA + heightB + heightC));
+            avgG = ((node->A->avg.g * (w * heightA)) + (node->B->avg.g * (w * heightB)) + (node->C->avg.g * (w * heightC)))
+                / (w * (heightA + heightB + heightC));
+            avgB = ((node->A->avg.b * (w * heightA)) + (node->B->avg.b * (w * heightB)) + (node->C->avg.b * (w * heightC)))
+                / (w * (heightA + heightB + heightC));
+            avgA = ((node->A->avg.a * (w * heightA)) + (node->B->avg.a * (w * heightB)) + (node->C->avg.a * (w * heightC)))
+                / (w * (heightA + heightB + heightC));
+            node->avg = RGBAPixel(avgR, avgG, avgB, avgA);
+        } else if (w != 1 && h != 1) {
+            avgR = ((node->A->avg.r * (w * heightA)) + (node->C->avg.r * (w * heightC)))
+                / (w * (heightA + heightC));
+            avgG = ((node->A->avg.g * (w * heightA)) + (node->C->avg.g * (w * heightC)))
+                / (w * (heightA + heightC));
+            avgB = ((node->A->avg.b * (w * heightA)) + (node->C->avg.b * (w * heightC)))
+                / (w * (heightA + heightC));
+            avgA = ((node->A->avg.a * (w * heightA)) + (node->C->avg.a * (w * heightC)))
+                / (w * (heightA + heightC));
+            node->avg = RGBAPixel(avgR, avgG, avgB, avgA);
+        }
     } else {
         int widthcase = w % 3;
         int widthA, widthB, widthC;
@@ -216,7 +254,32 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
         node->A = BuildNode(im, pair<unsigned int, unsigned int>(ul.first, ul.second), widthA, h);
         node->B = BuildNode(im, pair<unsigned int, unsigned int>(ul.first + widthA, ul.second), widthB, h);
         node->C = BuildNode(im, pair<unsigned int, unsigned int>(ul.first + widthB, ul.second), widthC, h);
+
+        if (w > 2 && h > 1) {
+            avgR = ((node->A->avg.r * (widthA * h)) + (node->B->avg.r * (widthB * h)) + (node->C->avg.r * (widthC * h)))
+                / (h * (widthA + widthB + widthC));
+            avgG = ((node->A->avg.g * (widthA * h)) + (node->B->avg.g * (widthB * h)) + (node->C->avg.g * (widthC * h)))
+                / (h * (widthA + widthB + widthC));
+            avgB = ((node->A->avg.b * (widthA * h)) + (node->B->avg.b * (widthB * h)) + (node->C->avg.b * (widthC * h)))
+                / (h * (widthA + widthB + widthC));
+            avgA = ((node->A->avg.a * (widthA * h)) + (node->B->avg.a * (widthB * h)) + (node->C->avg.a * (widthC * h)))
+                / (h * (widthA + widthB + widthC));
+            node->avg = RGBAPixel(avgR, avgG, avgB, avgA);
+        } else if (w != 1 && h != 1) {
+            avgR = ((node->A->avg.r * (widthA * h)) + (node->C->avg.r * (widthC * h)))
+                / (h * (widthA + widthC));
+            avgG = ((node->A->avg.g * (widthA * h)) + (node->C->avg.g * (widthC * h)))
+                / (h * (widthA + widthC));
+            avgB = ((node->A->avg.b * (widthA * h)) + (node->C->avg.b * (widthC * h)))
+                / (h * (widthA + widthC));
+            avgA = ((node->A->avg.a * (widthA * h)) + (node->C->avg.a * (widthC * h)))
+                / (h * (widthA + widthC));
+            node->avg = RGBAPixel(avgR, avgG, avgB, avgA);
+        }
     }
+
+    // idea is to weigh the average colour of all three children by its area and calculate the average based on that
+    
 
     return node;
 }
@@ -224,6 +287,7 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
 /* ===== IF YOU HAVE DEFINED PRIVATE MEMBER FUNCTIONS IN tripletree_private.h, IMPLEMENT THEM HERE ====== */
 
 /**
+<<<<<<< HEAD
  * Given an area of an image, find the average colour and return an RGBAPixel
  * @param im - reference image used for construction
  * @param ul - upper left point of node to be built's rectangle.
@@ -257,6 +321,57 @@ RGBAPixel TripleTree::AverageColour(PNG& im, pair<unsigned int, unsigned int> ul
     unsigned int avgAlpha = static_cast<unsigned int>(totalAlpha / pixelCount);
 
     return RGBAPixel(avgRed, avgGreen, avgBlue, avgAlpha);
+=======
+ * Helper function to recursively copy another tree to the current one
+ * @param node - the root of the other tree
+*/
+Node* TripleTree::CopyTree(Node* node) {
+    if (node == nullptr)
+        return nullptr;
+    
+    Node* newNode = new Node(node->upperleft, node->width, node->height);
+    newNode->avg = node->avg;
+    newNode->A = CopyTree(node->A);
+    newNode->B = CopyTree(node->B);
+    newNode->C = CopyTree(node->C);
+
+    return newNode;
+}
+
+/**
+ * Helper function to recursively travel the tree and count number of leaves
+ * @param node - the root of the tree
+*/
+int TripleTree::NumLeavesCounter(const Node* node) const {
+    if (node == nullptr)
+        return 0;
+    else if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
+        return 1;
+    
+    int result = 0;
+    result += NumLeavesCounter(node->A);
+    result += NumLeavesCounter(node->B);
+    result += NumLeavesCounter(node->C);
+
+    return result;
+}
+
+/**
+ * Helper function to mirror the tree
+ * @param node - the root of the tree
+*/
+void TripleTree::FlipHorizontal(Node* node) {
+    if (node->A != nullptr && node->C != nullptr) { // because image has to be a rectangle so tree is symmetrical
+        FlipHorizontal(node->A);
+        FlipHorizontal(node->C);
+        
+        Node* temp = node->A;
+        node->A = node->C;
+        node->C = temp;
+    }
+    if (node->B != nullptr)
+        FlipHorizontal(node->B);
+>>>>>>> 022badeb6615d5d55e485b2e6b8ce84acab2ea70
 }
 
 void TripleTree::RenderHelper(Node* node, PNG& image) const {
