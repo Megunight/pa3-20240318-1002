@@ -70,7 +70,12 @@ TripleTree::TripleTree(PNG& imIn) {
  */
 PNG TripleTree::Render() const {
     // replace the line below with your implementation
-    return PNG();
+    PNG image; // Initialize with appropriate dimensions if not default constructed.
+    if (root) {
+        image.resize(root->width, root->height);
+        RenderHelper(root, image);
+    }
+    return image;
 }
 
 /*
@@ -86,7 +91,7 @@ PNG TripleTree::Render() const {
  */
 void TripleTree::Prune(double tol) {
     // add your implementation below
-	
+	PruneHelper(root, tol);
 }
 
 /**
@@ -98,7 +103,7 @@ void TripleTree::Prune(double tol) {
  */
 void TripleTree::FlipHorizontal() {
     // add your implementation below
-	
+	FlipHorizontalHelper(root);
 }
 
 /**
@@ -120,7 +125,7 @@ void TripleTree::RotateCCW() {
  */
 int TripleTree::NumLeaves() const {
     // replace the line below with your implementation
-    return -1;
+    return NumLeavesHelper(root);
 }
 
 /**
@@ -130,7 +135,7 @@ int TripleTree::NumLeaves() const {
      */
 void TripleTree::Clear() {
     // add your implementation below
-	
+	ClearHelper(root);
 }
 
 /**
@@ -141,7 +146,7 @@ void TripleTree::Clear() {
  */
 void TripleTree::Copy(const TripleTree& other) {
     // add your implementation below
-	
+	root = CopyHelper(other.root);
 }
 
 /**
@@ -226,26 +231,104 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
  * @param h - height of node to be built's rectangle.
  */
 RGBAPixel TripleTree::AverageColour(PNG& im, pair<unsigned int, unsigned int> ul, unsigned int w, unsigned int h) {
-    unsigned int accumulatedRed = 0;
-    unsigned int accumulatedGreen = 0;
-    unsigned int accumulatedBlue = 0;
-    double accumulatedAlpha = 0;
-    int numNodes = 0;
-    for (unsigned int y = ul.second; y < ul.second + h; y++) {
-        for (unsigned int x = ul.first; x < ul.first + w; x++) {
-            RGBAPixel* temp = im.getPixel(x, y);
-            accumulatedRed += temp->r;
-            accumulatedGreen += temp->g;
-            accumulatedBlue += temp->b;
-            accumulatedAlpha += temp->a;
-            numNodes++;
+    unsigned long long totalRed = 0, totalGreen = 0, totalBlue = 0, totalAlpha = 0;
+    unsigned long long pixelCount = 0; // Use unsigned long long for large images to prevent overflow
+
+    for (unsigned int x = ul.first; x < ul.first + w && x < im.width(); x++) {
+        for (unsigned int y = ul.second; y < ul.second + h && y < im.height(); y++) {
+            RGBAPixel* pixel = im.getPixel(x, y);
+            totalRed += pixel->r;
+            totalGreen += pixel->g;
+            totalBlue += pixel->b;
+            totalAlpha += pixel->a;
+            pixelCount++;
         }
     }
-    unsigned int avgRed = accumulatedRed / numNodes;
-    unsigned int avgGreen = accumulatedGreen / numNodes;
-    unsigned int avgBlue = accumulatedBlue / numNodes;
-    double avgAlpha = accumulatedAlpha / numNodes;
 
-    RGBAPixel avgP(avgRed, avgGreen, avgBlue, avgAlpha);
-    return avgP;
+    // Check to prevent division by zero
+    if (pixelCount == 0) {
+        return RGBAPixel(); // Return default RGBAPixel if no pixels are in the specified region
+    }
+
+    // Calculate average values
+    unsigned int avgRed = static_cast<unsigned int>(totalRed / pixelCount);
+    unsigned int avgGreen = static_cast<unsigned int>(totalGreen / pixelCount);
+    unsigned int avgBlue = static_cast<unsigned int>(totalBlue / pixelCount);
+    unsigned int avgAlpha = static_cast<unsigned int>(totalAlpha / pixelCount);
+
+    return RGBAPixel(avgRed, avgGreen, avgBlue, avgAlpha);
+}
+
+void TripleTree::RenderHelper(Node* node, PNG& image) const {
+    if (!node) return; // Base case: node is null.
+    if (!node->A && !node->B && !node->C) { // Leaf node check.
+        // Paint the rectangle with node's average color.
+        for (unsigned int x = node->upperleft.first; x < node->upperleft.first + node->width; ++x) {
+            for (unsigned int y = node->upperleft.second; y < node->upperleft.second + node->height; ++y) {
+                RGBAPixel* pixel = image.getPixel(x, y);
+                *pixel = node->avg;
+            }
+        }
+    } else {
+        // Recurse for children.
+        RenderHelper(node->A, image);
+        RenderHelper(node->B, image);
+        RenderHelper(node->C, image);
+    }
+}
+
+void TripleTree::PruneHelper(Node*& node, double tol) {
+    if (!node) return; // Base case.
+    if (!node->A && !node->B && !node->C) return; // Leaf node.
+
+    if (ShouldPrune(node, node->avg, tol)) {
+        Clear();
+    } else {
+        PruneHelper(node->A, tol);
+        PruneHelper(node->B, tol);
+        PruneHelper(node->C, tol);
+    }
+}
+
+bool TripleTree::ShouldPrune(Node* node, RGBAPixel avg, double tol) const {
+    if (!node) return true;
+    if (!node->A && !node->B && !node->C) { // Leaf node.
+        return node->avg.distanceTo(avg) <= tol;
+    }
+    return ShouldPrune(node->A, avg, tol) &&
+           ShouldPrune(node->B, avg, tol) &&
+           ShouldPrune(node->C, avg, tol);
+}
+
+void TripleTree::FlipHorizontalHelper(Node* node) {
+    if (!node || (!node->A && !node->B && !node->C)) return; // Null or leaf node.
+    std::swap(node->A, node->C); // Swap the horizontal children.
+    FlipHorizontalHelper(node->A);
+    FlipHorizontalHelper(node->B);
+    FlipHorizontalHelper(node->C);
+}
+
+int TripleTree::NumLeavesHelper(Node* node) const {
+    if (!node) return 0; // Base case.
+    if (!node->A && !node->B && !node->C) return 1; // Leaf node.
+    return NumLeavesHelper(node->A) + NumLeavesHelper(node->B) + NumLeavesHelper(node->C); // Sum of leaves in children.
+}
+
+void TripleTree::ClearHelper(Node*& node) {
+    if (node == nullptr) return;
+    ClearHelper(node->A);
+    ClearHelper(node->B);
+    ClearHelper(node->C);
+    delete node; // Free the current node after its children are dealt with.
+    node = nullptr; // Avoid dangling pointers by setting the deleted node's pointer to nullptr.
+}
+
+Node* TripleTree::CopyHelper(Node* otherNode) {
+    if (otherNode == nullptr) return nullptr;
+    Node* newNode = new Node(otherNode->upperleft, otherNode->width, otherNode->height);
+    newNode->avg = otherNode->avg;
+    newNode->A = CopyHelper(otherNode->A);
+    newNode->B = CopyHelper(otherNode->B);
+    newNode->C = CopyHelper(otherNode->C);
+    return newNode;
 }
