@@ -97,8 +97,7 @@ void TripleTree::Prune(double tol) {
  * You may want a recursive helper function for this.
  */
 void TripleTree::FlipHorizontal() {
-    // add your implementation below
-	
+    FlipHorizontal(root);
 }
 
 /**
@@ -119,8 +118,7 @@ void TripleTree::RotateCCW() {
  * You may want a recursive helper function for this.
  */
 int TripleTree::NumLeaves() const {
-    // replace the line below with your implementation
-    return -1;
+    return NumLeavesCounter(root);
 }
 
 /**
@@ -140,8 +138,7 @@ void TripleTree::Clear() {
  * @param other - The TripleTree to be copied.
  */
 void TripleTree::Copy(const TripleTree& other) {
-    // add your implementation below
-	
+    root = CopyTree(other.root);
 }
 
 /**
@@ -268,3 +265,55 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
 }
 
 /* ===== IF YOU HAVE DEFINED PRIVATE MEMBER FUNCTIONS IN tripletree_private.h, IMPLEMENT THEM HERE ====== */
+
+/**
+ * Helper function to recursively copy another tree to the current one
+ * @param node - the root of the other tree
+*/
+Node* TripleTree::CopyTree(Node* node) {
+    if (node == nullptr)
+        return nullptr;
+    
+    Node* newNode = new Node(node->upperleft, node->width, node->height);
+    newNode->avg = node->avg;
+    newNode->A = CopyTree(node->A);
+    newNode->B = CopyTree(node->B);
+    newNode->C = CopyTree(node->C);
+
+    return newNode;
+}
+
+/**
+ * Helper function to recursively travel the tree and count number of leaves
+ * @param node - the root of the tree
+*/
+int TripleTree::NumLeavesCounter(const Node* node) const {
+    if (node == nullptr)
+        return 0;
+    else if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
+        return 1;
+    
+    int result = 0;
+    result += NumLeavesCounter(node->A);
+    result += NumLeavesCounter(node->B);
+    result += NumLeavesCounter(node->C);
+
+    return result;
+}
+
+/**
+ * Helper function to mirror the tree
+ * @param node - the root of the tree
+*/
+void TripleTree::FlipHorizontal(Node* node) {
+    if (node->A != nullptr && node->C != nullptr) { // because image has to be a rectangle so tree is symmetrical
+        FlipHorizontal(node->A);
+        FlipHorizontal(node->C);
+        
+        Node* temp = node->A;
+        node->A = node->C;
+        node->C = temp;
+    }
+    if (node->B != nullptr)
+        FlipHorizontal(node->B);
+}
