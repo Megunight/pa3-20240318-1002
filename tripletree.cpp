@@ -103,6 +103,7 @@ void TripleTree::Prune(double tol) {
  */
 void TripleTree::FlipHorizontal() {
     FlipHorizontalHelper(root, root->upperleft.first);
+    FlipHorizontalHelper(root, root->upperleft.first);
 }
 
 /**
@@ -114,6 +115,7 @@ void TripleTree::FlipHorizontal() {
  */
 void TripleTree::RotateCCW() {
     // add your implementation below
+	rotateCCWHelper(root, root->width);
 	rotateCCWHelper(root, root->width);
 }
 
@@ -261,7 +263,11 @@ int TripleTree::NumLeavesCounter(const Node* node) const {
         return 0;
 
     if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
+
+    if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
         return 1;
+
+    return (NumLeavesCounter(node->A) + NumLeavesCounter(node->B) + NumLeavesCounter(node->C));
 
     return (NumLeavesCounter(node->A) + NumLeavesCounter(node->B) + NumLeavesCounter(node->C));
 }
@@ -282,6 +288,54 @@ void TripleTree::RenderHelper(Node* node, PNG& image) const {
         RenderHelper(node->B, image);
         RenderHelper(node->C, image);
     }
+}
+
+Node* TripleTree::FlipHorizontalHelper(Node* node, unsigned int parentWidth) {
+    if (node == nullptr) 
+        return nullptr; // Base case: If the current node is null, do nothing.
+    
+    // Flip the upperleft x-coordinate.
+    node->upperleft.first = parentWidth;
+
+    // If it's a leaf node, we don't need to do anything further.
+    if (node->A == nullptr && node->B == nullptr && node->C == nullptr) 
+        return node;
+
+    if (node->width >= node->height) {
+        Node* nodeC = node->C;
+        node->C = FlipHorizontalHelper(node->A, parentWidth + (node->A == nullptr ? 0 : node->A->width) + (node->B == nullptr ? 0 : node->B->width));
+        node->B = FlipHorizontalHelper(node->B, parentWidth + (node->A == nullptr ? 0 : node->A->width));
+        node->A = FlipHorizontalHelper(nodeC, parentWidth);
+        return node;
+    }
+    node->A = FlipHorizontalHelper(node->A, parentWidth);
+    node->B = FlipHorizontalHelper(node->B, parentWidth);
+    node->C = FlipHorizontalHelper(node->C, parentWidth);
+    return node;
+}
+
+void TripleTree::rotateCCWHelper(Node* node, unsigned int newHeight) {
+    if (node == nullptr) {
+        return; // Base case: null node doesn't need to be rotated.
+    }
+
+    // Perform the counter-clockwise rotation for the child nodes first
+    rotateCCWHelper(node->A, newHeight);
+    rotateCCWHelper(node->B, newHeight);
+    rotateCCWHelper(node->C, newHeight);
+
+    unsigned int old_x = node->upperleft.first;
+
+    bool shouldSwap =  (node->width > node->height) || 
+                        (node->width == node->height && node->A != nullptr && node->C != nullptr && node->A->width > node->A->height);
+
+    if (shouldSwap) 
+        std::swap(node->A, node->C);
+    
+    node->upperleft.first = node->upperleft.second;
+    node->upperleft.second = newHeight - (old_x + node->width);
+
+    std::swap(node->width, node->height);
 }
 
 Node* TripleTree::FlipHorizontalHelper(Node* node, unsigned int parentWidth) {
