@@ -102,7 +102,7 @@ void TripleTree::Prune(double tol) {
  * You may want a recursive helper function for this.
  */
 void TripleTree::FlipHorizontal() {
-    FlipHorizontal(root);
+    FlipHorizontalHelper(root, root->upperleft.first);
 }
 
 /**
@@ -114,7 +114,7 @@ void TripleTree::FlipHorizontal() {
  */
 void TripleTree::RotateCCW() {
     // add your implementation below
-	
+	rotateCCWHelper(root, root->width);
 }
 
 /*
@@ -132,8 +132,7 @@ int TripleTree::NumLeaves() const {
      * You may want a recursive helper function for this one.
      */
 void TripleTree::Clear() {
-    // add your implementation below
-	ClearHelper(root);
+    ClearHelper(root);
 }
 
 /**
@@ -194,10 +193,7 @@ Node* TripleTree::BuildNode(PNG& im, pair<unsigned int, unsigned int> ul, unsign
 
     }
 
-        
-
     // idea is to weigh the average colour of all three children by its area and calculate the average based on that
-    
     node->avg = AverageColour(node);
     return node;
 }
@@ -263,32 +259,11 @@ Node* TripleTree::CopyTree(Node* node) {
 int TripleTree::NumLeavesCounter(const Node* node) const {
     if (node == nullptr)
         return 0;
-    else if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
+
+    if (node->A == nullptr && node->B == nullptr && node->C == nullptr)
         return 1;
-    
-    int result = 0;
-    result += NumLeavesCounter(node->A);
-    result += NumLeavesCounter(node->B);
-    result += NumLeavesCounter(node->C);
 
-    return result;
-}
-
-/**
- * Helper function to mirror the tree
- * @param node - the root of the tree
-*/
-void TripleTree::FlipHorizontal(Node* node) {
-    if (node->A != nullptr && node->C != nullptr) { // because image has to be a rectangle so tree is symmetrical
-        FlipHorizontal(node->A);
-        FlipHorizontal(node->C);
-        
-        Node* temp = node->A;
-        node->A = node->C;
-        node->C = temp;
-    }
-    if (node->B != nullptr)
-        FlipHorizontal(node->B);
+    return (NumLeavesCounter(node->A) + NumLeavesCounter(node->B) + NumLeavesCounter(node->C));
 }
 
 void TripleTree::RenderHelper(Node* node, PNG& image) const {
@@ -309,12 +284,62 @@ void TripleTree::RenderHelper(Node* node, PNG& image) const {
     }
 }
 
+Node* TripleTree::FlipHorizontalHelper(Node* node, unsigned int parentWidth) {
+    if (node == nullptr) 
+        return nullptr; // Base case: If the current node is null, do nothing.
+    
+    // Flip the upperleft x-coordinate.
+    node->upperleft.first = parentWidth;
+
+    // If it's a leaf node, we don't need to do anything further.
+    if (node->A == nullptr && node->B == nullptr && node->C == nullptr) 
+        return node;
+
+    if (node->width >= node->height) {
+        Node* nodeC = node->C;
+        node->C = FlipHorizontalHelper(node->A, parentWidth + (node->A == nullptr ? 0 : node->A->width) + (node->B == nullptr ? 0 : node->B->width));
+        node->B = FlipHorizontalHelper(node->B, parentWidth + (node->A == nullptr ? 0 : node->A->width));
+        node->A = FlipHorizontalHelper(nodeC, parentWidth);
+        return node;
+    }
+    node->A = FlipHorizontalHelper(node->A, parentWidth);
+    node->B = FlipHorizontalHelper(node->B, parentWidth);
+    node->C = FlipHorizontalHelper(node->C, parentWidth);
+    return node;
+}
+
+void TripleTree::rotateCCWHelper(Node* node, unsigned int newHeight) {
+    if (node == nullptr) {
+        return; // Base case: null node doesn't need to be rotated.
+    }
+
+    // Perform the counter-clockwise rotation for the child nodes first
+    rotateCCWHelper(node->A, newHeight);
+    rotateCCWHelper(node->B, newHeight);
+    rotateCCWHelper(node->C, newHeight);
+
+    unsigned int old_x = node->upperleft.first;
+
+    bool shouldSwap =  (node->width > node->height) || 
+                        (node->width == node->height && node->A != nullptr && node->C != nullptr && node->A->width > node->A->height);
+
+    if (shouldSwap) 
+        std::swap(node->A, node->C);
+    
+    node->upperleft.first = node->upperleft.second;
+    node->upperleft.second = newHeight - (old_x + node->width);
+
+    std::swap(node->width, node->height);
+}
+
 void TripleTree::PruneHelper(Node*& node, double tol) {
     if (!node) return; // Base case.
     if (!node->A && !node->B && !node->C) return; // Leaf node.
 
     if (ShouldPrune(node, node->avg, tol)) {
-        Clear();
+        ClearHelper(node->A);
+        ClearHelper(node->B);
+        ClearHelper(node->C);
     } else {
         PruneHelper(node->A, tol);
         PruneHelper(node->B, tol);
@@ -332,35 +357,22 @@ bool TripleTree::ShouldPrune(Node* node, RGBAPixel avg, double tol) const {
            ShouldPrune(node->C, avg, tol);
 }
 
-void TripleTree::FlipHorizontalHelper(Node* node) {
-    if (!node || (!node->A && !node->B && !node->C)) return; // Null or leaf node.
-    std::swap(node->A, node->C); // Swap the horizontal children.
-    FlipHorizontalHelper(node->A);
-    FlipHorizontalHelper(node->B);
-    FlipHorizontalHelper(node->C);
-}
-
-int TripleTree::NumLeavesHelper(Node* node) const {
-    if (!node) return 0; // Base case.
-    if (!node->A && !node->B && !node->C) return 1; // Leaf node.
-    return NumLeavesHelper(node->A) + NumLeavesHelper(node->B) + NumLeavesHelper(node->C); // Sum of leaves in children.
-}
-
+/**
+ * Given a node, deletes the node and its entire subtree bottom-up
+ * @param node - subtree to be deleted
+*/
 void TripleTree::ClearHelper(Node*& node) {
-    if (node == nullptr) return;
-    ClearHelper(node->A);
-    ClearHelper(node->B);
-    ClearHelper(node->C);
-    delete node; // Free the current node after its children are dealt with.
-    node = nullptr; // Avoid dangling pointers by setting the deleted node's pointer to nullptr.
-}
-
-Node* TripleTree::CopyHelper(Node* otherNode) {
-    if (otherNode == nullptr) return nullptr;
-    Node* newNode = new Node(otherNode->upperleft, otherNode->width, otherNode->height);
-    newNode->avg = otherNode->avg;
-    newNode->A = CopyHelper(otherNode->A);
-    newNode->B = CopyHelper(otherNode->B);
-    newNode->C = CopyHelper(otherNode->C);
-    return newNode;
+    if (node == nullptr)
+        return;
+    
+    if (node->A != nullptr)
+        ClearHelper(node->A);
+    if (node->B != nullptr)
+        ClearHelper(node->B);
+    if (node->C != nullptr)
+        ClearHelper(node->C);
+    
+    Node* temp = node;
+    node = nullptr;
+    delete temp;
 }

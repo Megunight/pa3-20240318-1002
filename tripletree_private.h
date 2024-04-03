@@ -24,18 +24,20 @@ Node* CopyTree(Node* node);
 
 int NumLeavesCounter(const Node* node) const;
 
-void FlipHorizontal(Node* node);
-
 void RenderHelper(Node* node, PNG& image) const;
 
 void PruneHelper(Node*& node, double tol);
 
 bool ShouldPrune(Node* node, RGBAPixel avg, double tol) const;
 
-void FlipHorizontalHelper(Node* node);
+Node* FlipHorizontalHelper(Node* node, unsigned int parentWidth);
 
-int NumLeavesHelper(Node* node) const;
+void rotateCCWHelper(Node* node, unsigned int newHeight);
 
+/**
+ * Given a node, deletes the node and its entire subtree bottom-up
+ * @param node - subtree to be deleted
+*/
 void ClearHelper(Node*& node);
 
 Node* CopyHelper(Node* otherNode);
